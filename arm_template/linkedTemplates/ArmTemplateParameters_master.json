@@ -3,7 +3,7 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "factoryName": {
-            "value": "sansADFProj"
+            "value": "<DATA-FACTORY-NAME>"
         },
         "storagedatalake_accountKey": {
             "value": ""
@@ -12,7 +12,7 @@
             "value": ""
         },
         "storagedatalake_properties_typeProperties_url": {
-            "value": "https://sansadf.dfs.core.windows.net/"
+            "value": "https://<STORAGE_ACCOUNT>.dfs.core.windows.net/"
         },
         "HttpLinkedService_properties_typeProperties_url": {
             "value": "https://raw.githubusercontent.com/"
@@ -21,13 +21,13 @@
             "value": "https://raw.githubusercontent.com/"
         },
         "ls_sql_properties_typeProperties_server": {
-            "value": "adfprojectsans.database.windows.net"
+            "value": "<DATABASE_SERVER>.database.windows.net"
         },
         "ls_sql_properties_typeProperties_database": {
-            "value": "adfprojectdb"
+            "value": "<DATABASE_NAME>"
         },
         "ls_sql_properties_typeProperties_userName": {
-            "value": "adminadmin"
+            "value": "<USERNAME>"
         },
         "containerUri": {
             "value": ""
