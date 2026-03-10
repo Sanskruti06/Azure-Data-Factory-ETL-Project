@@ -1064,7 +1064,7 @@
                             "method": "POST",
                             "headers": {},
                             "url": {
-                                "value": "https://prod-23.northcentralus.logic.azure.com:443/workflows/eabcac75dc294303857b4fe874ab8475/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=DaSyjucccaJX9mst8uMfUNqTPfUlVgtvUsfG4JcXeUs",
+                                "value": [parameters('logicapp_webhook_url')]
                                 "type": "Expression"
                             },
                             "body": {
