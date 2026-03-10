@@ -1,0 +1,855 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "type": "string",
+            "metadata": "Data Factory name",
+            "defaultValue": "sansADFProj"
+        },
+        "storagedatalake_accountKey": {
+            "type": "secureString",
+            "metadata": "Secure string for 'accountKey' of 'storagedatalake'"
+        },
+        "ls_sql_password": {
+            "type": "secureString",
+            "metadata": "Secure string for 'password' of 'ls_sql'"
+        },
+        "storagedatalake_properties_typeProperties_url": {
+            "type": "string",
+            "defaultValue": "https://sansadf.dfs.core.windows.net/"
+        },
+        "HttpLinkedService_properties_typeProperties_url": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/"
+        },
+        "ls_github_properties_typeProperties_url": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/"
+        },
+        "ls_sql_properties_typeProperties_server": {
+            "type": "string",
+            "defaultValue": "adfprojectsans.database.windows.net"
+        },
+        "ls_sql_properties_typeProperties_database": {
+            "type": "string",
+            "defaultValue": "adfprojectdb"
+        },
+        "ls_sql_properties_typeProperties_userName": {
+            "type": "string",
+            "defaultValue": "adminadmin"
+        }
+    },
+    "variables": {
+        "factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat(parameters('factoryName'), '/storagedatalake')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureBlobFS",
+                "typeProperties": {
+                    "url": "[parameters('storagedatalake_properties_typeProperties_url')]",
+                    "accountKey": {
+                        "type": "SecureString",
+                        "value": "[parameters('storagedatalake_accountKey')]"
+                    }
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/HttpLinkedService')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "HttpServer",
+                "typeProperties": {
+                    "url": "[parameters('HttpLinkedService_properties_typeProperties_url')]",
+                    "enableServerCertificateValidation": true,
+                    "authenticationType": "Anonymous"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ls_github')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "HttpServer",
+                "typeProperties": {
+                    "url": "[parameters('ls_github_properties_typeProperties_url')]",
+                    "enableServerCertificateValidation": true,
+                    "authenticationType": "Anonymous"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ls_sql')]",
+            "type": "Microsoft.DataFactory/factories/linkedServices",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "annotations": [],
+                "type": "AzureSqlDatabase",
+                "typeProperties": {
+                    "server": "[parameters('ls_sql_properties_typeProperties_server')]",
+                    "database": "[parameters('ls_sql_properties_typeProperties_database')]",
+                    "encrypt": "mandatory",
+                    "trustServerCertificate": false,
+                    "authenticationType": "SQL",
+                    "userName": "[parameters('ls_sql_properties_typeProperties_userName')]",
+                    "password": {
+                        "type": "SecureString",
+                        "value": "[parameters('ls_sql_password')]"
+                    }
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_git_parameter')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "storagedatalake",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "git.json",
+                        "fileSystem": "parameter"
+                    }
+                },
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "p_rel_url": {
+                            "type": "string"
+                        },
+                        "p_sink_folder": {
+                            "type": "string"
+                        },
+                        "p_sink_file": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/storagedatalake')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_bronze')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "storagedatalake",
+                    "type": "LinkedServiceReference"
+                },
+                "parameters": {
+                    "p_sink_folder": {
+                        "type": "String"
+                    },
+                    "p_sink_file": {
+                        "type": "String"
+                    }
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": {
+                            "value": "@dataset().p_sink_file",
+                            "type": "Expression"
+                        },
+                        "fileSystem": "bronze"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/storagedatalake')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_api_sink')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "storagedatalake",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "DimAirport.json",
+                        "folderPath": "github",
+                        "fileSystem": "bronze"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/storagedatalake')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_api_source')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_github",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "HttpServerLocation",
+                        "relativeUrl": "anshlambagit/AnshLambaYoutube/refs/heads/main/ADF_Project/DimAirport.json"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_github')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_http')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "HttpLinkedService",
+                    "type": "LinkedServiceReference"
+                },
+                "parameters": {
+                    "p_rel_url": {
+                        "type": "String"
+                    }
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "HttpServerLocation",
+                        "relativeUrl": {
+                            "value": "@dataset().p_rel_url",
+                            "type": "Expression"
+                        }
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/HttpLinkedService')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_sqlsource')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "ls_sql",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "AzureSqlTable",
+                "schema": [],
+                "typeProperties": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/ls_sql')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_sql')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "storagedatalake",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "sql",
+                        "fileSystem": "bronze"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/storagedatalake')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_emptyjson')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "storagedatalake",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "empty.json",
+                        "folderPath": "monitor/emptyjson",
+                        "fileSystem": "bronze"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/storagedatalake')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_lookup')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "storagedatalake",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "lastload.json",
+                        "folderPath": "monitor/lastload",
+                        "fileSystem": "bronze"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/storagedatalake')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_dim_passenger')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "storagedatalake",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "DimPassenger.csv",
+                        "fileSystem": "bronze"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/storagedatalake')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_dim_flight')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "storagedatalake",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "DimFlight.csv",
+                        "fileSystem": "bronze"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/storagedatalake')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_factbooking_source')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "storagedatalake",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "Parquet",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "folderPath": "sql",
+                        "fileSystem": "bronze"
+                    },
+                    "compressionCodec": "snappy"
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/storagedatalake')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_dimairport')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "storagedatalake",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "Json",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "DimAirport.json",
+                        "folderPath": "github",
+                        "fileSystem": "bronze"
+                    }
+                },
+                "schema": {}
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/storagedatalake')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/ds_silver_source')]",
+            "type": "Microsoft.DataFactory/factories/datasets",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "linkedServiceName": {
+                    "referenceName": "storagedatalake",
+                    "type": "LinkedServiceReference"
+                },
+                "annotations": [],
+                "type": "DelimitedText",
+                "typeProperties": {
+                    "location": {
+                        "type": "AzureBlobFSLocation",
+                        "fileName": "DimAirline.csv",
+                        "fileSystem": "bronze"
+                    },
+                    "columnDelimiter": ",",
+                    "escapeChar": "\\",
+                    "firstRowAsHeader": true,
+                    "quoteChar": "\""
+                },
+                "schema": []
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/storagedatalake')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/Data Serving')]",
+            "type": "Microsoft.DataFactory/factories/dataflows",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "type": "MappingDataFlow",
+                "typeProperties": {
+                    "sources": [
+                        {
+                            "linkedService": {
+                                "referenceName": "storagedatalake",
+                                "type": "LinkedServiceReference"
+                            },
+                            "name": "DimAirline"
+                        },
+                        {
+                            "linkedService": {
+                                "referenceName": "storagedatalake",
+                                "type": "LinkedServiceReference"
+                            },
+                            "name": "DimFlight"
+                        },
+                        {
+                            "linkedService": {
+                                "referenceName": "storagedatalake",
+                                "type": "LinkedServiceReference"
+                            },
+                            "name": "FactBookings"
+                        }
+                    ],
+                    "sinks": [
+                        {
+                            "linkedService": {
+                                "referenceName": "storagedatalake",
+                                "type": "LinkedServiceReference"
+                            },
+                            "name": "sinkGold",
+                            "rejectedDataLinkedService": {
+                                "referenceName": "storagedatalake",
+                                "type": "LinkedServiceReference"
+                            }
+                        },
+                        {
+                            "linkedService": {
+                                "referenceName": "storagedatalake",
+                                "type": "LinkedServiceReference"
+                            },
+                            "name": "Sink"
+                        }
+                    ],
+                    "transformations": [
+                        {
+                            "name": "joinAirline"
+                        },
+                        {
+                            "name": "selectcols"
+                        },
+                        {
+                            "name": "aggregateAirline"
+                        },
+                        {
+                            "name": "Ranking"
+                        },
+                        {
+                            "name": "filterTop5"
+                        },
+                        {
+                            "name": "alterRow1"
+                        },
+                        {
+                            "name": "derivedColumnCode"
+                        },
+                        {
+                            "name": "derivedColumnDurationMinutes"
+                        },
+                        {
+                            "name": "derivedColumndurationHours"
+                        },
+                        {
+                            "name": "derivedColumnCategory"
+                        },
+                        {
+                            "name": "alterRow2"
+                        }
+                    ],
+                    "scriptLines": [
+                        "source(output(",
+                        "          airline_id as short,",
+                        "          airline_name as string,",
+                        "          country as string",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false,",
+                        "     format: 'delta',",
+                        "     fileSystem: 'silver',",
+                        "     folderPath: 'DimAirline') ~> DimAirline",
+                        "source(output(",
+                        "          flight_id as short,",
+                        "          flight_number as string,",
+                        "          departure_timestamp as string,",
+                        "          arrival_timestamp as string",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false,",
+                        "     format: 'delta',",
+                        "     fileSystem: 'silver',",
+                        "     folderPath: 'DimFlight') ~> DimFlight",
+                        "source(output(",
+                        "          booking_id as integer,",
+                        "          passenger_id as integer,",
+                        "          flight_id as integer,",
+                        "          airline_id as integer,",
+                        "          origin_airport_id as integer,",
+                        "          destination_airport_id as integer,",
+                        "          booking_date as date,",
+                        "          ticket_cost as integer,",
+                        "          flight_duration_mins as integer,",
+                        "          checkin_status as string",
+                        "     ),",
+                        "     allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     ignoreNoFilesFound: false,",
+                        "     format: 'delta',",
+                        "     fileSystem: 'silver',",
+                        "     folderPath: 'FactBookings') ~> FactBookings",
+                        "FactBookings, DimAirline join(FactBookings@airline_id == DimAirline@airline_id,",
+                        "     joinType:'left',",
+                        "     matchType:'exact',",
+                        "     ignoreSpaces: false,",
+                        "     broadcast: 'auto')~> joinAirline",
+                        "joinAirline select(mapColumn(",
+                        "          booking_id,",
+                        "          passenger_id,",
+                        "          flight_id,",
+                        "          airline_id = FactBookings@airline_id,",
+                        "          origin_airport_id,",
+                        "          destination_airport_id,",
+                        "          booking_date,",
+                        "          ticket_cost,",
+                        "          flight_duration_mins,",
+                        "          checkin_status,",
+                        "          airline_name,",
+                        "          country",
+                        "     ),",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> selectcols",
+                        "selectcols aggregate(groupBy(airline_name),",
+                        "     Total_Sales = sum(ticket_cost)) ~> aggregateAirline",
+                        "aggregateAirline window(desc(Total_Sales, true),",
+                        "     Rank = denseRank()) ~> Ranking",
+                        "Ranking filter(Rank < 6) ~> filterTop5",
+                        "filterTop5 alterRow(insertIf(1==1)) ~> alterRow1",
+                        "DimFlight derive(airline_code = substring(flight_number,1,2)) ~> derivedColumnCode",
+                        "derivedColumnCode derive(duration_minutes = iif(",
+                        "toTimestamp(arrival_timestamp,'HH:mm') < toTimestamp(departure_timestamp,'HH:mm'),",
+                        "",
+                        "toInteger(",
+                        "(toTimestamp(arrival_timestamp,'HH:mm') + 86400000 -",
+                        "toTimestamp(departure_timestamp,'HH:mm'))/60000",
+                        "),",
+                        "",
+                        "toInteger(",
+                        "(toTimestamp(arrival_timestamp,'HH:mm') -",
+                        "toTimestamp(departure_timestamp,'HH:mm'))/60000",
+                        ")",
+                        ")) ~> derivedColumnDurationMinutes",
+                        "derivedColumnDurationMinutes derive(duration_hour = concat(",
+                        "toString(floor(duration_minutes/60)),",
+                        "':',",
+                        "lpad(toString(duration_minutes % 60),2,'0')",
+                        ")) ~> derivedColumndurationHours",
+                        "derivedColumndurationHours derive(Category = iif(duration_minutes < 180, 'Short',",
+                        "    iif(duration_minutes < 360, 'Medium', 'Long')",
+                        ")) ~> derivedColumnCategory",
+                        "derivedColumnCategory alterRow(upsertIf(1==1)) ~> alterRow2",
+                        "alterRow1 sink(allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     format: 'delta',",
+                        "     fileSystem: 'gold',",
+                        "     folderPath: 'BusinessView',",
+                        "     overwrite: true,",
+                        "     mergeSchema: false,",
+                        "     autoCompact: false,",
+                        "     optimizedWrite: false,",
+                        "     vacuum: 0,",
+                        "     deletable: false,",
+                        "     insertable: true,",
+                        "     updateable: false,",
+                        "     upsertable: false,",
+                        "     keys:['airline_name'],",
+                        "     umask: 0022,",
+                        "     preCommands: [],",
+                        "     postCommands: [],",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> sinkGold",
+                        "alterRow2 sink(allowSchemaDrift: true,",
+                        "     validateSchema: false,",
+                        "     format: 'delta',",
+                        "     fileSystem: 'gold',",
+                        "     folderPath: 'DimAirlineView',",
+                        "     mergeSchema: false,",
+                        "     autoCompact: false,",
+                        "     optimizedWrite: false,",
+                        "     vacuum: 0,",
+                        "     deletable: false,",
+                        "     insertable: false,",
+                        "     updateable: false,",
+                        "     upsertable: true,",
+                        "     keys:['flight_id'],",
+                        "     umask: 0022,",
+                        "     preCommands: [],",
+                        "     postCommands: [],",
+                        "     skipDuplicateMapInputs: true,",
+                        "     skipDuplicateMapOutputs: true) ~> Sink"
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/linkedServices/storagedatalake')]"
+            ]
+        },
+        {
+            "name": "[concat(parameters('factoryName'), '/API_Ingestion')]",
+            "type": "Microsoft.DataFactory/factories/pipelines",
+            "apiVersion": "2018-06-01",
+            "properties": {
+                "activities": [
+                    {
+                        "name": "WebAPICall",
+                        "type": "WebActivity",
+                        "dependsOn": [],
+                        "policy": {
+                            "timeout": "0.12:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "method": "GET",
+                            "headers": {},
+                            "url": "https://raw.githubusercontent.com/anshlambagit/AnshLambaYoutube/refs/heads/main/ADF_Project/DimAirport.json"
+                        }
+                    },
+                    {
+                        "name": "CopyAPIData",
+                        "type": "Copy",
+                        "dependsOn": [
+                            {
+                                "activity": "WebAPICall",
+                                "dependencyConditions": [
+                                    "Succeeded"
+                                ]
+                            }
+                        ],
+                        "policy": {
+                            "timeout": "0.12:00:00",
+                            "retry": 0,
+                            "retryIntervalInSeconds": 30,
+                            "secureOutput": false,
+                            "secureInput": false
+                        },
+                        "userProperties": [],
+                        "typeProperties": {
+                            "source": {
+                                "type": "JsonSource",
+                                "storeSettings": {
+                                    "type": "HttpReadSettings",
+                                    "requestMethod": "GET"
+                                },
+                                "formatSettings": {
+                                    "type": "JsonReadSettings"
+                                }
+                            },
+                            "sink": {
+                                "type": "JsonSink",
+                                "storeSettings": {
+                                    "type": "AzureBlobFSWriteSettings"
+                                },
+                                "formatSettings": {
+                                    "type": "JsonWriteSettings"
+                                }
+                            },
+                            "enableStaging": false,
+                            "translator": {
+                                "type": "TabularTranslator",
+                                "mappings": [
+                                    {
+                                        "source": {
+                                            "path": "$['airport_id']"
+                                        },
+                                        "sink": {
+                                            "path": "$['airport_id']"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "path": "$['airport_name']"
+                                        },
+                                        "sink": {
+                                            "path": "$['airport_name']"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "path": "$['city']"
+                                        },
+                                        "sink": {
+                                            "path": "$['city']"
+                                        }
+                                    },
+                                    {
+                                        "source": {
+                                            "path": "$['country']"
+                                        },
+                                        "sink": {
+                                            "path": "$['country']"
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        "inputs": [
+                            {
+                                "referenceName": "ds_api_source",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "referenceName": "ds_api_sink",
+                                "type": "DatasetReference",
+                                "parameters": {}
+                            }
+                        ]
+                    }
+                ],
+                "policy": {
+                    "elapsedTimeMetric": {}
+                },
+                "annotations": [],
+                "lastPublishTime": "2026-03-01T16:00:02Z"
+            },
+            "dependsOn": [
+                "[concat(variables('factoryId'), '/datasets/ds_api_source')]",
+                "[concat(variables('factoryId'), '/datasets/ds_api_sink')]"
+            ]
+        }
+    ]
+}

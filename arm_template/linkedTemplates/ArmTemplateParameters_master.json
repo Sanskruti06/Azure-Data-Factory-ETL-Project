@@ -1,0 +1,39 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "factoryName": {
+            "value": "sansADFProj"
+        },
+        "storagedatalake_accountKey": {
+            "value": ""
+        },
+        "ls_sql_password": {
+            "value": ""
+        },
+        "storagedatalake_properties_typeProperties_url": {
+            "value": "https://sansadf.dfs.core.windows.net/"
+        },
+        "HttpLinkedService_properties_typeProperties_url": {
+            "value": "https://raw.githubusercontent.com/"
+        },
+        "ls_github_properties_typeProperties_url": {
+            "value": "https://raw.githubusercontent.com/"
+        },
+        "ls_sql_properties_typeProperties_server": {
+            "value": "adfprojectsans.database.windows.net"
+        },
+        "ls_sql_properties_typeProperties_database": {
+            "value": "adfprojectdb"
+        },
+        "ls_sql_properties_typeProperties_userName": {
+            "value": "adminadmin"
+        },
+        "containerUri": {
+            "value": ""
+        },
+        "containerSasToken": {
+            "value": ""
+        }
+    }
+}
