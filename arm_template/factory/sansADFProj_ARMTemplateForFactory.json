@@ -5,7 +5,7 @@
         "factoryName": {
             "type": "string",
             "metadata": "Data Factory name",
-            "defaultValue": "sansADFProj"
+            "defaultValue": "<DATA-FACTORY-NAME>"
         },
         "dataFactory_location": {
             "type": "string",
@@ -29,8 +29,8 @@
             "location": "[parameters('dataFactory_location')]",
             "identity": {
                 "type": "[parameters('dataFactory_identity_type')]",
-                "principalId": "e7d45425-2d04-4451-983e-a14cf273bea6",
-                "tenantId": "5ab2162c-dd69-49eb-bd4c-f4cfec491f52"
+                "principalId": " ",
+                "tenantId": " "
             }
         }
     ]
