@@ -14,7 +14,7 @@ The pipeline ingests data from source systems, processes it through the **Medall
 * **Gold Layer** – Business-ready data for analytics
 
 
-## Project Implementation Steps
+### Project Implementation Steps
 
 ### 1. Create Azure Resources
 
@@ -66,7 +66,7 @@ Datasets were created for:
 <img width="2934" height="1548" alt="image" src="https://github.com/user-attachments/assets/0ec4d8df-7ee2-4059-920a-6c2736a2eeae" />
 
 
-# a) Incremental Data Loading in ADF
+### a) Incremental Data Loading in ADF
 
 * Implemented **incremental data loading** using the **watermark technique**.
 * Used **Lookup Activity** to retrieve the last processed watermark value.
@@ -79,7 +79,7 @@ Datasets were created for:
 <img width="2938" height="1550" alt="image" src="https://github.com/user-attachments/assets/8a7e3116-2467-4232-adeb-8ac24707e526" />
 
 
-# b) Logic App Integration
+### b) Logic App Integration
 
 * Created an **Azure Logic App** to automate pipeline notifications.
 * Configured a **trigger to detect pipeline events / failures**.
